@@ -1,8 +1,7 @@
 #include <cstdio>
 #include <string.h>
 #include <stdlib.h>
-
-#include "pico/stdlib.h"
+#include <pico/stdlib.h>
 
 #include "encoder.h"
 #include "button.h"
