@@ -2,9 +2,10 @@ set(LIBRARY_NAME rp2040_rotary_encoder)
 
 add_library(${LIBRARY_NAME} STATIC)
 
+pico_generate_pio_header(rp2040_rotary_encoder ${CMAKE_CURRENT_LIST_DIR}/button.pio)
+
 target_sources(
     ${LIBRARY_NAME} PRIVATE
-    button.cpp
     encoder.cpp
 )
 
@@ -17,6 +18,7 @@ target_compile_options(
 target_link_libraries(
     ${LIBRARY_NAME}
     pico_stdlib
+    hardware_pio
 )
 
 target_include_directories(

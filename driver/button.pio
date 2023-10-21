@@ -1,0 +1,71 @@
+; Shift in the current value of the GPIO on each loop.  If the ISR is
+; all-bits-0 or all-bits-1, that's a debounced button state.  If it's
+; different than the previously reported state, push it to the RX FIFO
+; for the main processor to deal with.
+
+.program button
+    MOV Y, ~NULL  ; set Y to all-bits-1, this is the first state we look for
+
+start:
+.wrap_target
+    MOV ISR, X
+    IN PINS, 1
+    MOV X, ISR
+    JMP X!=Y start  ; X (and thus ISR) is NOT the state we're looking for, so DONT push
+
+do_push:
+    PUSH noblock
+    MOV Y, ~Y  ; invert Y, we're now looking for the *other* state
+
+.wrap
+
+
+
+% c-sdk {
+
+#include "hardware/clocks.h"
+#include "hardware/gpio.h"
+
+
+static PIO button_pio;
+static uint button_sm;
+
+static inline void button_init(PIO pio, uint offset, uint button_gpio) {
+    button_pio = pio;
+
+    button_sm = pio_claim_unused_sm(button_pio, true);
+
+    pio_sm_set_consecutive_pindirs(button_pio, button_sm, button_gpio, 1, false);
+    gpio_pull_up(button_gpio);
+
+    pio_sm_config c = button_program_get_default_config(offset);
+
+    sm_config_set_in_pins(&c, button_gpio); // for WAIT, IN
+    // shift to left, autopull disabled
+    sm_config_set_in_shift(&c, false, false, 32);
+    // don't join FIFOs
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_NONE);
+
+    // Run this PIO state machine as slow as possible, ~2kHz.  Since we
+    // need 32 identical consecutive GPIO readings, this means about a
+    // 16 ms debounce settling period.
+    sm_config_set_clkdiv_int_frac(&c, 65535, 0);
+
+    pio_sm_init(button_pio, button_sm, offset, &c);
+    pio_sm_set_enabled(button_pio, button_sm, true);
+}
+
+
+static inline bool button_get_state(uint32_t & button_state) {
+    int n;
+
+    n = pio_sm_get_rx_fifo_level(button_pio, button_sm);
+    if (n > 0) {
+        button_state = pio_sm_get_blocking(button_pio, button_sm);
+        return true;
+    }
+
+    return false;
+}
+
+%}
