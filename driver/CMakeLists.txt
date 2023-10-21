@@ -1,8 +1,9 @@
 set(LIBRARY_NAME rp2040_rotary_encoder)
 
-add_library(
-    ${LIBRARY_NAME}
-    STATIC
+add_library(${LIBRARY_NAME} STATIC)
+
+target_sources(
+    ${LIBRARY_NAME} PRIVATE
     button.cpp
     encoder.cpp
 )
