@@ -9,6 +9,8 @@
 
 int main() {
     stdio_init_all();
+    sleep_ms(3*1000);
+    printf("booted\n");
 
     encoder_init();
     button_init();
