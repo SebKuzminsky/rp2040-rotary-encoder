@@ -46,10 +46,17 @@ static inline void button_init(PIO pio, uint offset, uint button_gpio) {
     // don't join FIFOs
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_NONE);
 
-    // Run this PIO state machine as slow as possible, ~2kHz.  Since we
-    // need 32 identical consecutive GPIO readings, this means about a
-    // 16 ms debounce settling period.
-    sm_config_set_clkdiv_int_frac(&c, 65535, 0);
+    // The main GPIO sampling loop is 4 instructions long, so 4 cycles
+    // per sample.  It needs 32 consecutive identical samples to register
+    // a debounced edge, which is 128 cycles.
+    //
+    // Run this PIO instance clock pretty slow:
+    //
+    // 125 MHz / 5 k = 25 kHz (40 µs/clock)
+    //
+    // 128 clocks * 40 µs/clock = 5120 µs
+
+    sm_config_set_clkdiv_int_frac(&c, 5000, 0);
 
     pio_sm_init(button_pio, button_sm, offset, &c);
     pio_sm_set_enabled(button_pio, button_sm, true);
