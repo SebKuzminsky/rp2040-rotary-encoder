@@ -12,29 +12,22 @@ int main() {
     sleep_ms(3*1000);
     printf("booted\n");
 
-    // Base pin to connect the A phase of the encoder.
-    // The B phase must be connected to the next pin
-    const uint PIN_AB = 0;
 
     // we don't really need to keep the offset, as this program must be loaded
     // at offset 0
-    (void)pio_add_program(pio0, &quadrature_encoder_program);
-    quadrature_encoder_program_init(pio0, PIN_AB, 0);
+    (void)pio_add_program_at_offset(pio0, &quadrature_encoder_program, 0);
 
-    uint button_offset = 0;
+    // This is the GPIO to connect the A phase of the encoder.  The B
+    // phase must be connected to the next GPIO.
+    const uint encoder_gpio = 0;
+    quadrature_encoder_program_init(pio0, encoder_gpio, 0);
 
-    if (pio_can_add_program_at_offset(pio1, &button_program, button_offset)) {
-        printf("adding button at %u\n", button_offset);
-    } else {
-        printf("can't add button at %u\n", button_offset);
-    }
 
-    pio_add_program_at_offset(pio1, &button_program, button_offset);
-    printf("loaded button at 0x%08x\n", button_offset);
+    uint button_offset = pio_add_program(pio1, &button_program);
 
     uint const button_gpio = 2;
-
     button_init(pio1, button_offset, button_gpio);
+
 
     int old_value = 0;
     for (;;) {
